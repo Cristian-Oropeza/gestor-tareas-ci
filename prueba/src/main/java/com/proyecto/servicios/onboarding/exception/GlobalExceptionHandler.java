@@ -89,11 +89,12 @@ public class GlobalExceptionHandler {
     // ========== Query/Path params con tipo incorrecto ==========
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<GenericResponse> handleMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
-        String tipo = ex.getRequiredType() == null ? "" : ex.getRequiredType().getSimpleName();
+        Class<?> tipo = ex.getRequiredType();
+        String nombreTipo = tipo == null ? "" : tipo.getSimpleName();
         String msg = ex.getName() + ": valor '" + ex.getValue() + "' invalido"
-                + (tipo.isEmpty() ? "" : " para tipo " + tipo);
-        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
-            String permitidos = Arrays.stream(ex.getRequiredType().getEnumConstants())
+                + (nombreTipo.isEmpty() ? "" : " para tipo " + nombreTipo);
+        if (tipo != null && tipo.isEnum()) {
+            String permitidos = Arrays.stream(tipo.getEnumConstants())
                     .map(Object::toString).collect(Collectors.joining(", "));
             msg += ". Valores permitidos: [" + permitidos + "]";
         }

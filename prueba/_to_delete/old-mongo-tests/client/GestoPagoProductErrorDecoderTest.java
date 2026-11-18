@@ -1,9 +1,6 @@
 package com.proyecto.servicios.client;
 
-import com.proyecto.servicios.exception.GestoPagoErrorCode;
-import com.proyecto.servicios.exception.GestoPagoIntegrationException;
-import feign.Request;
-import feign.Response;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
