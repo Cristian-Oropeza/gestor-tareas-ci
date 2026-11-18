@@ -25,6 +25,45 @@ app:
     saldo-inicial: ${CUENTA_SALDO_INICIAL:0.00}
     prefijo-clabe: ${CUENTA_PREFIJO_CLABE:014180}
 
+  # ----------- Fase 2A: TOTP (2FA Google Authenticator) ----------
+  security:
+    totp:
+      # Nombre que aparece al escanear el QR en Google Authenticator / Authy.
+      issuer: ${TOTP_ISSUER:GestoPago Comercio PWA Oropeza}
+      # Llave para cifrar el secret TOTP en BD (AES-256). Base64, 32 bytes.
+      # OBLIGATORIO en prod: sin esta llave no se puede guardar ni validar 2FA.
+      encryption-key: ${TOTP_SECRET_ENCRYPTION_KEY:}
+      # Scratch codes de respaldo generados al activar 2FA.
+      scratch-codes-count: ${TOTP_SCRATCH_COUNT:10}
+      # Lockout tras intentos fallidos consecutivos.
+      max-intentos: ${TOTP_MAX_INTENTOS:3}
+      bloqueo-minutos: ${TOTP_BLOQUEO_MIN:15}
+      # Ventana de validacion TOTP (pasos de 30s a cada lado).
+      ventana-pasos: ${TOTP_VENTANA_PASOS:1}
+
+  # ----------- Fase 2A: Sesion unica server-side ------------
+  sesion:
+    # Minutos de inactividad antes de invalidar la sesion automaticamente.
+    inactividad-minutos: ${SESION_INACTIVIDAD_MINUTOS:30}
+    # Intervalo del scheduler que limpia sesiones expiradas.
+    cleanup-cron: ${SESION_CLEANUP_CRON:0 */5 * * * *}
+    # Duracion del pre-auth token (etapa 1 del login antes del 2FA).
+    pre-auth-token-minutos: ${PRE_AUTH_TOKEN_MIN:5}
+
+  # ----------- Fase 2A: Rate limiting + lockout de cuenta ------------
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    # Intentos de login por IP en ventana rolling (anti brute-force).
+    login-por-15min: ${RATE_LIMIT_LOGIN_PER_15MIN:5}
+    # Limite general por IP para mitigar DoS basico.
+    ip-por-minuto: ${RATE_LIMIT_IP_PER_MINUTE:60}
+  lockout:
+    enabled: ${LOCKOUT_ENABLED:true}
+    # Intentos fallidos consecutivos por correo antes de bloquear.
+    max-intentos: ${LOCKOUT_MAX_INTENTOS:5}
+    # Duracion del bloqueo de cuenta.
+    duracion-minutos: ${LOCKOUT_DURACION_MIN:15}
+
 # ----------- GestoPago (modulo de transacciones) ------------
 # Para activar: GESTOPAGO_ENABLED=true + credenciales (ver .env.example).
 # Las credenciales del distribuidor 83 son PUBLICAS de la documentacion de PuntoRed.

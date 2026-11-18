@@ -27,10 +27,14 @@ public class SecurityConfig {
     @Value("${app.security.jwt.enabled:false}")
     private boolean jwtEnabled;
 
-    /** BCrypt con strength 10: ~60ms por hash. Balance perf/seguridad. */
+    /**
+     * BCrypt con strength 12: ~300ms por hash en hardware moderno.
+     * Balance perf/seguridad: alto costo para atacantes offline, imperceptible en login real.
+     * Subido de 10 -> 12 en Fase 2A como hardening contra brute-force offline.
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(10);
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
