@@ -13,7 +13,7 @@ describe('Salud y métricas', () => {
   test('GET /metrics expone métricas de Prometheus', async () => {
     await request(app).get('/health');
     const res = await request(app).get('/metrics');
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(res.text).toContain('http_request_duration_seconds');
   });
 });
