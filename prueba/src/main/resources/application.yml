@@ -15,18 +15,13 @@ spring:
 
 # ----------- Onboarding: JWT (opcional) -----------
 app:
+  # ----------- Seguridad: JWT + TOTP (2FA) -----------
   security:
     jwt:
       enabled: ${JWT_ENABLED:false}
       secret: ${JWT_SECRET:password-completamente-segura-1-2-3-4-5-cambiar-en-prod-pls-okey-si-si-1234567890}
       expiration-ms: ${JWT_EXPIRATION_MS:3600000}
       issuer: onboarding-clientes
-  cuenta:
-    saldo-inicial: ${CUENTA_SALDO_INICIAL:0.00}
-    prefijo-clabe: ${CUENTA_PREFIJO_CLABE:014180}
-
-  # ----------- Fase 2A: TOTP (2FA Google Authenticator) ----------
-  security:
     totp:
       # Nombre que aparece al escanear el QR en Google Authenticator / Authy.
       issuer: ${TOTP_ISSUER:GestoPago Comercio PWA Oropeza}
@@ -40,6 +35,10 @@ app:
       bloqueo-minutos: ${TOTP_BLOQUEO_MIN:15}
       # Ventana de validacion TOTP (pasos de 30s a cada lado).
       ventana-pasos: ${TOTP_VENTANA_PASOS:1}
+
+  cuenta:
+    saldo-inicial: ${CUENTA_SALDO_INICIAL:0.00}
+    prefijo-clabe: ${CUENTA_PREFIJO_CLABE:014180}
 
   # ----------- Fase 2A: Sesion unica server-side ------------
   sesion:

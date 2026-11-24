@@ -36,6 +36,15 @@ public class Usuario {
     @Builder.Default
     private Boolean activo = Boolean.TRUE;
 
+    /** Contador de intentos fallidos consecutivos (Fase 2A: lockout). */
+    @Column(name = "intentos_fallidos", nullable = false)
+    @Builder.Default
+    private Short intentosFallidos = 0;
+
+    /** Si esta en futuro, la cuenta esta bloqueada hasta esa fecha/hora. */
+    @Column(name = "bloqueado_hasta")
+    private OffsetDateTime bloqueadoHasta;
+
     @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private OffsetDateTime fechaCreacion;

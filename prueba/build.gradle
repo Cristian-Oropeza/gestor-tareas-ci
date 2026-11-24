@@ -71,6 +71,12 @@ dependencies {
     // la llave TOTP_SECRET_ENCRYPTION_KEY (env var, nunca en el codigo ni el repo).
     implementation 'org.jasypt:jasypt:1.9.3'
 
+    // ==== Fase 2A: Lectura automatica del archivo .env ====
+    // Spring Boot no lee .env por defecto. Esta libreria lo expone como un
+    // PropertySource al arrancar, para que funcione igual en IntelliJ, VS Code,
+    // gradlew bootRun y Docker. El .env esta en .gitignore y nunca llega al repo.
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
     // Dev / Lombok / MapStruct
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     compileOnly "org.projectlombok:lombok:${lombokVersion}"

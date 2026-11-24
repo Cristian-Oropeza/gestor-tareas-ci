@@ -13,6 +13,7 @@ import com.proyecto.servicios.onboarding.repository.UsuarioRepository;
 import com.proyecto.servicios.onboarding.security.JwtService;
 import com.proyecto.servicios.onboarding.security.sesion.SesionProperties;
 import com.proyecto.servicios.onboarding.security.sesion.SesionService;
+import com.proyecto.servicios.onboarding.security.ratelimit.LockoutService;
 import com.proyecto.servicios.onboarding.security.totp.TotpService;
 import com.proyecto.servicios.onboarding.service.AuthService;
 import io.jsonwebtoken.Claims;
@@ -35,6 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final SesionService sesionService;
     private final TotpService totpService;
+    private final LockoutService lockoutService;
     private final SesionProperties sesionProps;
 
     // ===================================================================
@@ -44,6 +46,9 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public LoginResponse login(LoginRequest req, boolean forceLogin, String userAgent, String ipAddress) {
         String correo = req.correo().toLowerCase().trim();
+        // 1) Verificar lockout ANTES de validar password para no dar hints por timing.
+        lockoutService.verificarNoBloqueado(correo);
+
         Usuario u = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(CredencialesInvalidasException::new);
 
@@ -51,9 +56,11 @@ public class AuthServiceImpl implements AuthService {
             throw new UsuarioInactivoException();
         }
         if (!passwordEncoder.matches(req.password(), u.getPassword())) {
+            lockoutService.registrarFallo(correo);
             log.warn("Login fallido para correo={}", correo);
             throw new CredencialesInvalidasException();
         }
+        lockoutService.registrarExito(correo);
 
         // ¿Tiene 2FA activo? Si si, devolvemos preAuthToken y NO creamos sesion.
         if (totpService.tieneActivo(correo)) {
@@ -89,9 +96,12 @@ public class AuthServiceImpl implements AuthService {
             throw new UsuarioInactivoException();
         }
 
+        lockoutService.verificarNoBloqueado(correo);
         if (!totpService.validarCodigo(correo, req.codigo())) {
+            lockoutService.registrarFallo(correo);
             throw new TotpCodigoInvalidoException();
         }
+        lockoutService.registrarExito(correo);
 
         return emitirAccessToken(u, forceLogin, userAgent, ipAddress);
     }

@@ -1,6 +1,7 @@
 package com.proyecto.servicios.onboarding.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proyecto.servicios.onboarding.security.ratelimit.RateLimitFilter;
 import com.proyecto.servicios.onboarding.dto.response.GenericResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import org.springframework.security.web.header.writers.XXssProtectionHeaderWrite
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final ObjectMapper objectMapper;
 
     @Value("${app.security.jwt.enabled:false}")
@@ -61,6 +63,7 @@ public class SecurityConfig {
                         res, HttpServletResponse.SC_FORBIDDEN, "No tiene permisos para este recurso"))
             )
 
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         if (jwtEnabled) {
@@ -81,8 +84,8 @@ public class SecurityConfig {
                     ).authenticated()
                     // Resto de /auth/** es publico: /login, /2fa/verificar (pre-auth token), etc.
                     .requestMatchers("/api/v1/auth/**").permitAll()
-                    // Alta inicial de cliente antes de tener cuenta
-                    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/clientes").permitAll()
+                    // Alta inicial de cliente antes de tener cuenta (auto-registro publico).
+                    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/clientes/registrar").permitAll()
                     .anyRequest().authenticated()
             );
         } else {

@@ -19,6 +19,7 @@ import com.proyecto.servicios.onboarding.security.JwtService;
 import com.proyecto.servicios.onboarding.security.sesion.SesionService;
 import com.proyecto.servicios.onboarding.security.sesion.SesionProperties;
 import com.proyecto.servicios.onboarding.security.totp.TotpService;
+import com.proyecto.servicios.onboarding.security.ratelimit.LockoutService;
 import com.proyecto.servicios.onboarding.entity.SesionActiva;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,7 @@ class AuthServiceImplTest {
     @Mock JwtService jwtService;
     @Mock SesionService sesionService;
     @Mock TotpService totpService;
+    @Mock LockoutService lockoutService;
     @Mock SesionProperties sesionProps;
     @InjectMocks AuthServiceImpl service;
 
