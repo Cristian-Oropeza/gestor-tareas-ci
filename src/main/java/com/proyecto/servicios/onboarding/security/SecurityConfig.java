@@ -80,7 +80,8 @@ public class SecurityConfig {
                     .requestMatchers(
                             "/api/v1/auth/2fa/setup",
                             "/api/v1/auth/2fa/activar",
-                            "/api/v1/auth/2fa/desactivar"
+                            "/api/v1/auth/2fa/desactivar",
+                            "/api/v1/auth/2fa/status"
                     ).authenticated()
                     // Resto de /auth/** es publico: /login, /2fa/verificar (pre-auth token), etc.
                     .requestMatchers("/api/v1/auth/**").permitAll()

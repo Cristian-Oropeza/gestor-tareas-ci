@@ -4,6 +4,7 @@ import com.proyecto.servicios.onboarding.dto.request.Totp2FAActivarRequest;
 import com.proyecto.servicios.onboarding.dto.request.Totp2FADesactivarRequest;
 import com.proyecto.servicios.onboarding.dto.response.GenericResponse;
 import com.proyecto.servicios.onboarding.dto.response.Totp2FASetupResponse;
+import com.proyecto.servicios.onboarding.dto.response.Totp2FAStatusResponse;
 import com.proyecto.servicios.onboarding.exception.CredencialesInvalidasException;
 import com.proyecto.servicios.onboarding.security.totp.TotpService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,6 +59,15 @@ public class Totp2FAController {
         totpService.desactivar(correo, req.password());
         return ResponseEntity.ok(
                 GenericResponse.builder().codigo(200).mensaje("2FA desactivado").build());
+    }
+
+
+    @PostMapping("/status")
+    @Operation(summary = "Devuelve si el usuario autenticado tiene 2FA activado")
+    public ResponseEntity<Totp2FAStatusResponse> status(Authentication auth) {
+        String correo = requireCorreo(auth);
+        boolean activo = totpService.tieneActivo(correo);
+        return ResponseEntity.ok(new Totp2FAStatusResponse(activo));
     }
 
     private String requireCorreo(Authentication auth) {
