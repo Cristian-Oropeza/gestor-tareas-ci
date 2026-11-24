@@ -65,13 +65,23 @@ public class SecurityConfig {
 
         if (jwtEnabled) {
             http.authorizeHttpRequests(auth -> auth
+                    // Swagger y utilidades publicas
                     .requestMatchers(
-                            "/api/v1/auth/**",
                             "/swagger-ui/**", "/swagger-ui.html",
                             "/api-docs/**", "/v3/api-docs/**",
                             "/actuator/health",
                             "/error"
                     ).permitAll()
+                    // Endpoints 2FA que requieren usuario autenticado (NO son publicos):
+                    // setup/activar/desactivar los usa el dueño del token para administrar su propio 2FA.
+                    .requestMatchers(
+                            "/api/v1/auth/2fa/setup",
+                            "/api/v1/auth/2fa/activar",
+                            "/api/v1/auth/2fa/desactivar"
+                    ).authenticated()
+                    // Resto de /auth/** es publico: /login, /2fa/verificar (pre-auth token), etc.
+                    .requestMatchers("/api/v1/auth/**").permitAll()
+                    // Alta inicial de cliente antes de tener cuenta
                     .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/clientes").permitAll()
                     .anyRequest().authenticated()
             );
