@@ -1,0 +1,125 @@
+package com.proyecto.servicios.onboarding.security;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.Map;
+
+@Service
+@Slf4j
+public class JwtService {
+
+    /** Default seguro: si falla la resolucion de la env var, se usa este literal. */
+    private static final String SECRET_FALLBACK =
+            "default-dev-secret-no-usar-en-produccion-nunca-32bytes-1234567890";
+
+    @Value("${app.security.jwt.secret:}")
+    private String secret;
+    @Value("${app.security.jwt.expiration-ms:3600000}")
+    private long expirationMs;
+    @Value("${app.security.jwt.issuer:onboarding-clientes}")
+    private String issuer;
+
+    private SecretKey key;
+
+    @PostConstruct
+    void init() {
+        // Defensa: si el secret vino vacio o quedo con ${...} literal (placeholder mal escrito),
+        //         usamos el fallback para no tumbar la app en arranque.
+        if (secret == null || secret.isBlank() || secret.contains("${")) {
+            log.warn("JWT secret ausente o mal formado ('{}'); usando fallback de desarrollo. " +
+                    "Configura JWT_SECRET en el entorno para produccion.", secret);
+            secret = SECRET_FALLBACK;
+        }
+
+        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length < 32) {
+            log.warn("JWT secret muy corto ({} bytes). Recomendado >= 32. Se padea a 32.", bytes.length);
+        }
+        this.key = Keys.hmacShaKeyFor(padTo32(bytes));
+        log.info("JwtService inicializado (longitud secret: {} bytes, exp: {} s)",
+                Math.max(bytes.length, 32), expirationMs / 1000);
+    }
+
+    private byte[] padTo32(byte[] input) {
+        if (input.length >= 32) return input;
+        byte[] out = new byte[32];
+        System.arraycopy(input, 0, out, 0, input.length);
+        return out;
+    }
+
+    /** Compatibilidad: genera un token con jti aleatorio. Usado por tests y codigo legacy. */
+    public String generarToken(Long clienteId, String correo) {
+        return generarToken(clienteId, correo, java.util.UUID.randomUUID().toString());
+    }
+
+    /**
+     * Genera un JWT con un jti especifico. Este jti debe haber sido registrado previamente
+     * en sesiones_activas por el SesionService; sin esa ancla server-side el token sera
+     * rechazado por el JwtAuthenticationFilter.
+     */
+    public String generarToken(Long clienteId, String correo, String jti) {
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + expirationMs);
+        return Jwts.builder()
+                .id(jti)
+                .subject(correo)
+                .issuer(issuer)
+                .claims(Map.of("clienteId", clienteId))
+                .issuedAt(now)
+                .expiration(exp)
+                .signWith(key)
+                .compact();
+    }
+
+    public Claims validar(String token) {
+        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+    }
+
+    public long getExpirationSeconds() { return expirationMs / 1000L; }
+
+    // ====================================================================
+    // Pre-auth tokens (etapa 1 del login cuando el usuario tiene 2FA).
+    // ====================================================================
+    // Son JWT cortos (por defecto 5 min) con scope="2fa-pending" y SIN jti
+    // registrado en sesiones_activas. No sirven para autenticar endpoints
+    // protegidos; solo son valido contra /auth/2fa/verificar para intercambiarlo
+    // por un access token real.
+
+    public static final String SCOPE_PRE_AUTH = "2fa-pending";
+
+    public String generarPreAuthToken(Long clienteId, String correo, long duracionMinutos) {
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + duracionMinutos * 60_000L);
+        return Jwts.builder()
+                .subject(correo)
+                .issuer(issuer)
+                .claims(Map.of("clienteId", clienteId, "scope", SCOPE_PRE_AUTH))
+                .issuedAt(now)
+                .expiration(exp)
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * Valida un pre-auth token y devuelve los claims. Lanza JwtException si
+     * la firma esta rota, expiro, o el scope no es "2fa-pending" (defensa en
+     * profundidad contra usar un JWT real como pre-auth).
+     */
+    public Claims validarPreAuthToken(String token) {
+        Claims claims = validar(token);
+        String scope = claims.get("scope", String.class);
+        if (!SCOPE_PRE_AUTH.equals(scope)) {
+            throw new io.jsonwebtoken.JwtException("El token no es un pre-auth token");
+        }
+        return claims;
+    }
+}

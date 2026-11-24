@@ -1,0 +1,144 @@
+spring:
+  application:
+    name: onboarding-clientes
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+
+# ----------- Onboarding: JWT (opcional) -----------
+app:
+  # ----------- Seguridad: JWT + TOTP (2FA) -----------
+  security:
+    jwt:
+      enabled: ${JWT_ENABLED:false}
+      secret: ${JWT_SECRET:password-completamente-segura-1-2-3-4-5-cambiar-en-prod-pls-okey-si-si-1234567890}
+      expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+      issuer: onboarding-clientes
+    totp:
+      # Nombre que aparece al escanear el QR en Google Authenticator / Authy.
+      issuer: ${TOTP_ISSUER:GestoPago Comercio PWA Oropeza}
+      # Llave para cifrar el secret TOTP en BD (AES-256). Base64, 32 bytes.
+      # OBLIGATORIO en prod: sin esta llave no se puede guardar ni validar 2FA.
+      encryption-key: ${TOTP_SECRET_ENCRYPTION_KEY:}
+      # Scratch codes de respaldo generados al activar 2FA.
+      scratch-codes-count: ${TOTP_SCRATCH_COUNT:10}
+      # Lockout tras intentos fallidos consecutivos.
+      max-intentos: ${TOTP_MAX_INTENTOS:3}
+      bloqueo-minutos: ${TOTP_BLOQUEO_MIN:15}
+      # Ventana de validacion TOTP (pasos de 30s a cada lado).
+      ventana-pasos: ${TOTP_VENTANA_PASOS:1}
+
+  cuenta:
+    saldo-inicial: ${CUENTA_SALDO_INICIAL:0.00}
+    prefijo-clabe: ${CUENTA_PREFIJO_CLABE:014180}
+
+  # ----------- Fase 2A: Sesion unica server-side ------------
+  sesion:
+    # Minutos de inactividad antes de invalidar la sesion automaticamente.
+    inactividad-minutos: ${SESION_INACTIVIDAD_MINUTOS:30}
+    # Intervalo del scheduler que limpia sesiones expiradas.
+    cleanup-cron: ${SESION_CLEANUP_CRON:0 */5 * * * *}
+    # Duracion del pre-auth token (etapa 1 del login antes del 2FA).
+    pre-auth-token-minutos: ${PRE_AUTH_TOKEN_MIN:5}
+
+  # ----------- Fase 2A: Rate limiting + lockout de cuenta ------------
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    # Intentos de login por IP en ventana rolling (anti brute-force).
+    login-por-15min: ${RATE_LIMIT_LOGIN_PER_15MIN:5}
+    # Limite general por IP para mitigar DoS basico.
+    ip-por-minuto: ${RATE_LIMIT_IP_PER_MINUTE:60}
+  lockout:
+    enabled: ${LOCKOUT_ENABLED:true}
+    # Intentos fallidos consecutivos por correo antes de bloquear.
+    max-intentos: ${LOCKOUT_MAX_INTENTOS:5}
+    # Duracion del bloqueo de cuenta.
+    duracion-minutos: ${LOCKOUT_DURACION_MIN:15}
+
+# ----------- GestoPago (modulo de transacciones) ------------
+# Para activar: GESTOPAGO_ENABLED=true + credenciales (ver .env.example).
+# Las credenciales del distribuidor 83 son PUBLICAS de la documentacion de PuntoRed.
+# Las llaves AES (SECRET_KEY e IV) se las entrega PuntoRed; sin ellas no se envia nada.
+gestopago:
+  enabled: ${GESTOPAGO_ENABLED:false}
+  api-key: ${GESTOPAGO_API_KEY:}
+  auth:
+    url: ${GESTOPAGO_AUTH_URL:https://gestopago.portalventas.net}
+    id-distribuidor: ${GESTOPAGO_ID_DISTRIBUIDOR:83}
+    codigo-dispositivo: ${GESTOPAGO_CODIGO_DISPOSITIVO:GPS83-TPV-17}
+    password: ${GESTOPAGO_AUTH_PASSWORD:}
+    refresh-rate: ${GESTOPAGO_AUTH_REFRESH:1h}
+    vigencia: ${GESTOPAGO_AUTH_VIGENCIA:23h}
+  tx:
+    url: ${GESTOPAGO_TX_URL:https://gestopago.portalventas.net}
+    unidad: ${GESTOPAGO_TX_UNIDAD:083}
+    zona-horaria: ${GESTOPAGO_TX_ZONA:America/Mexico_City}
+    connect-timeout: ${GESTOPAGO_CONNECT_TIMEOUT:10s}
+    read-timeout: ${GESTOPAGO_READ_TIMEOUT:70s}
+    monto-maximo: ${GESTOPAGO_MONTO_MAXIMO:5000.00}
+    tope-diario: ${GESTOPAGO_TOPE_DIARIO:20000.00}
+    ventana-antiduplicado-seg: ${GESTOPAGO_VENTANA_ANTIDUP:30}
+    confirmacion-intervalo: ${GESTOPAGO_CONF_INTERVALO:60s}
+    min-segundos-antes-de-conciliar: ${GESTOPAGO_MIN_SEG_CONCILIAR:62}
+    max-horas-conciliar: ${GESTOPAGO_MAX_HORAS_CONCILIAR:24}
+    max-intentos: ${GESTOPAGO_MAX_INTENTOS:60}
+    tamano-lote: ${GESTOPAGO_TAMANO_LOTE:20}
+    conciliacion-enabled: ${GESTOPAGO_CONCILIACION_ENABLED:false}
+  cifrado:
+    llave: ${GESTOPAGO_CIFRADO_LLAVE:}
+    iv: ${GESTOPAGO_CIFRADO_IV:}
+  catalogo:
+    path: ${GESTOPAGO_CATALOGO_PATH:/sistema/service/getProductList.do}
+    sync-cron: ${GESTOPAGO_CATALOGO_SYNC_CRON:0 0 6 * * *}
+    sync-zone: ${GESTOPAGO_CATALOGO_SYNC_ZONE:America/Mexico_City}
+    sync-enabled: ${GESTOPAGO_CATALOGO_SYNC_ENABLED:true}
+
+# ----------- OpenAPI -----------
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  paths-to-exclude: /error
+
+server:
+  port: ${PORT:8081}
+  max-http-request-header-size: 16KB
+  tomcat:
+    threads:
+      max: 200
+    accept-count: 200
+    max-connections: 8192
+    max-http-form-post-size: 2MB
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/plain
+    min-response-size: 1024
+  error:
+    whitelabel:
+      enabled: false
+    include-message: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    root: INFO
+    com.proyecto.servicios: INFO
+    org.hibernate.SQL: WARN
