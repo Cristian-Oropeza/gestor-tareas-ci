@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/onboarding
+    url: jdbc:postgresql://localhost:6433/onboarding
     username: onboarding
     password: onboarding
     driver-class-name: org.postgresql.Driver
