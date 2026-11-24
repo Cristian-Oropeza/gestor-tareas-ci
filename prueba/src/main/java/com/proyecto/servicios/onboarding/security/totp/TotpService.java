@@ -30,4 +30,7 @@ public interface TotpService {
      * @return true si el codigo es valido.
      */
     boolean validarCodigo(String correo, String codigo);
+
+    /** True si el usuario tiene 2FA configurado Y activado. No lanza si no existe row. */
+    boolean tieneActivo(String correo);
 }

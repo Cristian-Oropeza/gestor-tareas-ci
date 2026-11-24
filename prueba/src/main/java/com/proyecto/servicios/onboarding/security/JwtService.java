@@ -85,4 +85,41 @@ public class JwtService {
     }
 
     public long getExpirationSeconds() { return expirationMs / 1000L; }
+
+    // ====================================================================
+    // Pre-auth tokens (etapa 1 del login cuando el usuario tiene 2FA).
+    // ====================================================================
+    // Son JWT cortos (por defecto 5 min) con scope="2fa-pending" y SIN jti
+    // registrado en sesiones_activas. No sirven para autenticar endpoints
+    // protegidos; solo son valido contra /auth/2fa/verificar para intercambiarlo
+    // por un access token real.
+
+    public static final String SCOPE_PRE_AUTH = "2fa-pending";
+
+    public String generarPreAuthToken(Long clienteId, String correo, long duracionMinutos) {
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + duracionMinutos * 60_000L);
+        return Jwts.builder()
+                .subject(correo)
+                .issuer(issuer)
+                .claims(Map.of("clienteId", clienteId, "scope", SCOPE_PRE_AUTH))
+                .issuedAt(now)
+                .expiration(exp)
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * Valida un pre-auth token y devuelve los claims. Lanza JwtException si
+     * la firma esta rota, expiro, o el scope no es "2fa-pending" (defensa en
+     * profundidad contra usar un JWT real como pre-auth).
+     */
+    public Claims validarPreAuthToken(String token) {
+        Claims claims = validar(token);
+        String scope = claims.get("scope", String.class);
+        if (!SCOPE_PRE_AUTH.equals(scope)) {
+            throw new io.jsonwebtoken.JwtException("El token no es un pre-auth token");
+        }
+        return claims;
+    }
 }

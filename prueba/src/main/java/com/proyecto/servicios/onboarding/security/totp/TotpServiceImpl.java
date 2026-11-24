@@ -311,4 +311,12 @@ public class TotpServiceImpl implements TotpService {
             throw new IllegalStateException("No se pudo generar el QR TOTP", e);
         }
     }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public boolean tieneActivo(String correo) {
+        return usuarioTotpRepository.findByUsuarioCorreo(correo)
+                .map(t -> Boolean.TRUE.equals(t.getActivado()))
+                .orElse(Boolean.FALSE);
+    }
 }
