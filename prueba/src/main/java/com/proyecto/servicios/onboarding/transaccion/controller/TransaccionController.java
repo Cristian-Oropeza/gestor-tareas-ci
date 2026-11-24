@@ -1,5 +1,13 @@
 package com.proyecto.servicios.onboarding.transaccion.controller;
 
+import com.proyecto.servicios.onboarding.security.JwtService;
+import com.proyecto.servicios.onboarding.exception.CredencialesInvalidasException;
+import com.proyecto.servicios.onboarding.transaccion.dto.request.MisComprasRequest;
+import com.proyecto.servicios.onboarding.transaccion.dto.response.MiCompraResponse;
+import org.springframework.data.domain.Page;
+import io.jsonwebtoken.Claims;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.HttpServletRequest;
 import com.proyecto.servicios.onboarding.transaccion.dto.request.TransaccionConsultaRequest;
 import com.proyecto.servicios.onboarding.transaccion.dto.request.TransaccionEjecutarRequest;
 import com.proyecto.servicios.onboarding.transaccion.dto.response.TransaccionResponse;
@@ -32,6 +40,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TransaccionController {
 
     private final TransaccionService service;
+    private final JwtService jwtService;
 
     @PostMapping
     @Operation(summary = "Ejecuta una transaccion contra GestoPago (sendTx)",
@@ -78,5 +87,26 @@ public class TransaccionController {
     @Operation(summary = "Consulta el estado vivo de una transaccion por referencia_operacion")
     public ResponseEntity<TransaccionResponse> consultar(@RequestBody @Valid TransaccionConsultaRequest req) {
         return ResponseEntity.ok(service.consultar(req));
+    }
+
+    @PostMapping("/mis-compras")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Historial de compras APLICADAS del usuario autenticado (clienteId del JWT)")
+    public ResponseEntity<Page<MiCompraResponse>> misCompras(
+            HttpServletRequest http,
+            @RequestBody(required = false) @Valid MisComprasRequest req) {
+        Long clienteId = extraerClienteIdDelJwt(http);
+        if (req == null) req = new MisComprasRequest();
+        return ResponseEntity.ok(service.misCompras(clienteId, req));
+    }
+
+    /** Extrae clienteId del JWT en el header Authorization. Ignora cualquier clienteId del body. */
+    private Long extraerClienteIdDelJwt(HttpServletRequest http) {
+        String auth = http.getHeader("Authorization");
+        if (auth == null || !auth.startsWith("Bearer ")) throw new CredencialesInvalidasException();
+        Claims claims = jwtService.validar(auth.substring(7).trim());
+        Number n = claims.get("clienteId", Number.class);
+        if (n == null) throw new CredencialesInvalidasException();
+        return n.longValue();
     }
 }

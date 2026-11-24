@@ -2,6 +2,7 @@ package com.proyecto.servicios.onboarding.transaccion.repository;
 
 import com.proyecto.servicios.onboarding.transaccion.entity.Transaccion;
 import com.proyecto.servicios.onboarding.transaccion.entity.enums.EstadoTransaccion;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -59,4 +60,17 @@ public interface TransaccionRepository
                                         @Param("hasta") OffsetDateTime hasta,
                                         @Param("maxIntentos") int maxIntentos,
                                         Pageable pageable);
+
+    /** Historial del usuario: solo APLICADA, filtrado por cliente y rango de fechas opcional. */
+    @Query("""
+            SELECT t FROM Transaccion t
+            WHERE t.cliente.id = :clienteId
+              AND t.estado = com.proyecto.servicios.onboarding.transaccion.entity.enums.EstadoTransaccion.APLICADA
+              AND (:desde IS NULL OR t.fechaConfirmacion >= :desde)
+              AND (:hasta IS NULL OR t.fechaConfirmacion <  :hasta)
+            """)
+    Page<Transaccion> findMisCompras(@Param("clienteId") Long clienteId,
+                                     @Param("desde") OffsetDateTime desde,
+                                     @Param("hasta") OffsetDateTime hasta,
+                                     Pageable pageable);
 }

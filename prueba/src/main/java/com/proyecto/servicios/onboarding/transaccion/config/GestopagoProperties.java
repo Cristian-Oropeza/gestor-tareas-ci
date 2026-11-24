@@ -25,6 +25,7 @@ public class GestopagoProperties {
     private Auth auth = new Auth();
     private Tx tx = new Tx();
     private Cifrado cifrado = new Cifrado();
+    private Catalogo catalogo = new Catalogo();
 
     /** X-API-Key opcional del comercio. Puede quedar vacio. */
     private String apiKey = "";
@@ -75,6 +76,18 @@ public class GestopagoProperties {
         private String llave = "";
         /** IV AES de 16 bytes en Base64. Entregado por PuntoRed. */
         private String iv = "";
+    }
+
+    @Getter @Setter
+    public static class Catalogo {
+        /** Path del servicio GestoPago para listar productos. */
+        private String path = "/sistema/service/getProductList.do";
+        /** Cron de sincronizacion diaria. Default: 6:00 AM Mexico. */
+        private String syncCron = "0 0 6 * * *";
+        /** Zona horaria del cron. */
+        private String syncZone = "America/Mexico_City";
+        /** Si false, el scheduler no corre (util en dev). */
+        private boolean syncEnabled = true;
     }
 
     @PostConstruct

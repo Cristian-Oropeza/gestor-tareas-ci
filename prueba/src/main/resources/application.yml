@@ -95,6 +95,11 @@ gestopago:
   cifrado:
     llave: ${GESTOPAGO_CIFRADO_LLAVE:}
     iv: ${GESTOPAGO_CIFRADO_IV:}
+  catalogo:
+    path: ${GESTOPAGO_CATALOGO_PATH:/sistema/service/getProductList.do}
+    sync-cron: ${GESTOPAGO_CATALOGO_SYNC_CRON:0 0 6 * * *}
+    sync-zone: ${GESTOPAGO_CATALOGO_SYNC_ZONE:America/Mexico_City}
+    sync-enabled: ${GESTOPAGO_CATALOGO_SYNC_ENABLED:true}
 
 # ----------- OpenAPI -----------
 springdoc:

@@ -56,6 +56,14 @@ public class CatalogoProducto {
     @Builder.Default
     private Boolean activo = Boolean.TRUE;
 
+    /** URL opcional de la imagen del producto (puede venir de GestoPago o quedar null). */
+    @Column(name = "imagen_url", length = 500)
+    private String imagenUrl;
+
+    /** Marca de la ultima sincronizacion con GestoPago (Fase 2A). */
+    @Column(name = "fecha_sincronizacion")
+    private OffsetDateTime fechaSincronizacion;
+
     @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private OffsetDateTime fechaCreacion;

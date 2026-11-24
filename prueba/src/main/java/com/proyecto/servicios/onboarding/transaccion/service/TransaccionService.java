@@ -11,4 +11,9 @@ public interface TransaccionService {
 
     /** Consulta el estado vivo de una transaccion por referencia_operacion (opaca, publica). */
     TransaccionResponse consultar(TransaccionConsultaRequest req);
+
+    /** Historial del cliente (solo APLICADA). clienteId se pasa explicito desde el controller (viene del JWT). */
+    org.springframework.data.domain.Page<com.proyecto.servicios.onboarding.transaccion.dto.response.MiCompraResponse>
+            misCompras(Long clienteId,
+                       com.proyecto.servicios.onboarding.transaccion.dto.request.MisComprasRequest req);
 }

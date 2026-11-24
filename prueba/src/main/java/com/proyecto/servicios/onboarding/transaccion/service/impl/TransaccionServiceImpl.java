@@ -1,5 +1,10 @@
 package com.proyecto.servicios.onboarding.transaccion.service.impl;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import com.proyecto.servicios.onboarding.transaccion.dto.response.MiCompraResponse;
+import com.proyecto.servicios.onboarding.transaccion.dto.request.MisComprasRequest;
 import com.proyecto.servicios.onboarding.entity.Cliente;
 import com.proyecto.servicios.onboarding.entity.Cuenta;
 import com.proyecto.servicios.onboarding.entity.enums.EstatusCuenta;
@@ -260,5 +265,22 @@ public class TransaccionServiceImpl implements TransaccionService {
             sb.append(ALFABETO_UPC.charAt(RANDOM.nextInt(ALFABETO_UPC.length())));
         }
         return sb.toString();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<MiCompraResponse> misCompras(Long clienteId, MisComprasRequest req) {
+        if (clienteId == null) {
+            throw new IllegalArgumentException("clienteId es obligatorio (viene del JWT)");
+        }
+        var pag = req.getPaginacion();
+        // Sort fijo seguro: fechaConfirmacion desc (no permitimos sort arbitrario del cliente).
+        PageRequest pr = PageRequest.of(pag.getPage(), pag.getSize(),
+                Sort.by(Sort.Direction.DESC, "fechaConfirmacion"));
+        return transaccionRepository.findMisCompras(clienteId, req.getDesde(), req.getHasta(), pr)
+                .map(t -> new MiCompraResponse(
+                        t.getId(), t.getReferenciaOperacion(), t.getIdServicio(),
+                        t.getIdProducto(), t.getTelefono(), t.getMonto(), t.getMoneda(),
+                        t.getNumAutorizacion(), t.getFechaConfirmacion()));
     }
 }

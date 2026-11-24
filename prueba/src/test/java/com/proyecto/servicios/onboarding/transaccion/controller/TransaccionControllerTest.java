@@ -42,7 +42,8 @@ class TransaccionControllerTest {
     @BeforeEach
     void setup() {
         service = Mockito.mock(TransaccionService.class);
-        TransaccionController controller = new TransaccionController(service);
+        com.proyecto.servicios.onboarding.security.JwtService jwtService = org.mockito.Mockito.mock(com.proyecto.servicios.onboarding.security.JwtService.class);
+        TransaccionController controller = new TransaccionController(service, jwtService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
