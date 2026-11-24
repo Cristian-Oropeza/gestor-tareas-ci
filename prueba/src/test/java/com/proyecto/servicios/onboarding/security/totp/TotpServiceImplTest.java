@@ -304,8 +304,9 @@ class TotpServiceImplTest {
                 .scratchCodes(hash + ",other-hash")
                 .intentosFallidos((short) 0).build();
         when(usuarioTotpRepository.findByUsuarioCorreo("test@demo.mx")).thenReturn(Optional.of(t));
+        // El loop encuentra el match en el primer hash y hace break, por eso solo
+        // stubeamos el que SI se invoca (Mockito strict detecta stubs no usados).
         when(passwordEncoder.matches(scratch, hash)).thenReturn(true);
-        when(passwordEncoder.matches(scratch, "other-hash")).thenReturn(false);
 
         boolean ok = service.validarCodigo("test@demo.mx", scratch);
 
