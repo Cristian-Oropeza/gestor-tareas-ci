@@ -220,7 +220,7 @@ public class TotpServiceImpl implements TotpService {
 
     private Usuario buscarUsuario(String correo) {
         return usuarioRepository.findByCorreo(correo)
-                .orElseThrow(UsuarioNoEncontradoException::new);
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado: " + correo));
     }
 
     private GoogleAuthenticator nuevoAuthenticator() {
