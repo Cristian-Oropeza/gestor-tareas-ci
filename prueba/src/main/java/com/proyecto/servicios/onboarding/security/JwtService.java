@@ -56,10 +56,21 @@ public class JwtService {
         return out;
     }
 
+    /** Compatibilidad: genera un token con jti aleatorio. Usado por tests y codigo legacy. */
     public String generarToken(Long clienteId, String correo) {
+        return generarToken(clienteId, correo, java.util.UUID.randomUUID().toString());
+    }
+
+    /**
+     * Genera un JWT con un jti especifico. Este jti debe haber sido registrado previamente
+     * en sesiones_activas por el SesionService; sin esa ancla server-side el token sera
+     * rechazado por el JwtAuthenticationFilter.
+     */
+    public String generarToken(Long clienteId, String correo, String jti) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + expirationMs);
         return Jwts.builder()
+                .id(jti)
                 .subject(correo)
                 .issuer(issuer)
                 .claims(Map.of("clienteId", clienteId))

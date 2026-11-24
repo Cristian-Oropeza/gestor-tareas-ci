@@ -35,6 +35,18 @@ public class GlobalExceptionHandler {
         return build(ex.getStatus(), ex.getMessage(), null);
     }
 
+    // ========== 409: sesion duplicada (lleva detalles estructurados) ==========
+    @ExceptionHandler(com.proyecto.servicios.onboarding.exception.SesionDuplicadaException.class)
+    public ResponseEntity<java.util.Map<String, Object>> handleSesionDuplicada(
+            com.proyecto.servicios.onboarding.exception.SesionDuplicadaException ex, HttpServletRequest req) {
+        log.warn("Sesion duplicada: {} sesiones activas previas", ex.getSesionesActivas().size());
+        java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("codigo", HttpStatus.CONFLICT.value());
+        body.put("mensaje", ex.getMessage());
+        body.put("detalles", ex.getSesionesActivas());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
     // ========== Validaciones @Valid en @RequestBody ==========
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<GenericResponse> handleValid(MethodArgumentNotValidException ex, HttpServletRequest req) {

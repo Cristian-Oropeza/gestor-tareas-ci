@@ -8,6 +8,8 @@ import com.proyecto.servicios.onboarding.exception.CredencialesInvalidasExceptio
 import com.proyecto.servicios.onboarding.exception.UsuarioInactivoException;
 import com.proyecto.servicios.onboarding.repository.UsuarioRepository;
 import com.proyecto.servicios.onboarding.security.JwtService;
+import com.proyecto.servicios.onboarding.security.sesion.SesionService;
+import com.proyecto.servicios.onboarding.entity.SesionActiva;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +23,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +34,7 @@ class AuthServiceImplTest {
     @Mock UsuarioRepository usuarioRepository;
     @Mock PasswordEncoder passwordEncoder;
     @Mock JwtService jwtService;
+    @Mock SesionService sesionService;
     @InjectMocks AuthServiceImpl service;
 
     private Cliente cliente;
@@ -47,10 +52,12 @@ class AuthServiceImplTest {
     void login_exitoso_devuelveToken() {
         when(usuarioRepository.findByCorreo("test@demo.mx")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("Secreto1!", usuario.getPassword())).thenReturn(true);
-        when(jwtService.generarToken(1L, "test@demo.mx")).thenReturn("tok-abc");
+        when(sesionService.crearSesion(anyLong(), anyString(), any(), any(), anyBoolean()))
+                .thenReturn(SesionActiva.builder().id(1L).jti("jti-test").build());
+        when(jwtService.generarToken(1L, "test@demo.mx", "jti-test")).thenReturn("tok-abc");
         when(jwtService.getExpirationSeconds()).thenReturn(3600L);
 
-        LoginResponse r = service.login(new LoginRequest("Test@Demo.MX", "Secreto1!"));
+        LoginResponse r = service.login(new LoginRequest("Test@Demo.MX", "Secreto1!"), false, "ua-test", "127.0.0.1");
 
         assertThat(r.token()).isEqualTo("tok-abc");
         assertThat(r.tipo()).isEqualTo("Bearer");
@@ -61,7 +68,7 @@ class AuthServiceImplTest {
     @Test
     void login_usuarioNoExiste_lanzaCredenciales() {
         when(usuarioRepository.findByCorreo(anyString())).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.login(new LoginRequest("nope@demo.mx", "x")))
+        assertThatThrownBy(() -> service.login(new LoginRequest("nope@demo.mx", "x"), false, "ua-test", "127.0.0.1"))
                 .isInstanceOf(CredencialesInvalidasException.class);
     }
 
@@ -70,7 +77,7 @@ class AuthServiceImplTest {
         usuario.setActivo(Boolean.FALSE);
         when(usuarioRepository.findByCorreo("test@demo.mx")).thenReturn(Optional.of(usuario));
 
-        assertThatThrownBy(() -> service.login(new LoginRequest("test@demo.mx", "x")))
+        assertThatThrownBy(() -> service.login(new LoginRequest("test@demo.mx", "x"), false, "ua-test", "127.0.0.1"))
                 .isInstanceOf(UsuarioInactivoException.class);
     }
 
@@ -79,7 +86,7 @@ class AuthServiceImplTest {
         cliente.setActivo(Boolean.FALSE);
         when(usuarioRepository.findByCorreo("test@demo.mx")).thenReturn(Optional.of(usuario));
 
-        assertThatThrownBy(() -> service.login(new LoginRequest("test@demo.mx", "x")))
+        assertThatThrownBy(() -> service.login(new LoginRequest("test@demo.mx", "x"), false, "ua-test", "127.0.0.1"))
                 .isInstanceOf(UsuarioInactivoException.class);
     }
 
@@ -88,7 +95,7 @@ class AuthServiceImplTest {
         when(usuarioRepository.findByCorreo("test@demo.mx")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches(any(), any())).thenReturn(false);
 
-        assertThatThrownBy(() -> service.login(new LoginRequest("test@demo.mx", "mala")))
+        assertThatThrownBy(() -> service.login(new LoginRequest("test@demo.mx", "mala"), false, "ua-test", "127.0.0.1"))
                 .isInstanceOf(CredencialesInvalidasException.class);
     }
 }
